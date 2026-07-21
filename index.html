@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#03070f">
+  <title>ORION // MISSION CONTROL</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #03070f;
+      --panel: rgba(7, 17, 31, .86);
+      --panel-2: rgba(10, 24, 41, .74);
+      --line: rgba(98, 224, 255, .16);
+      --cyan: #57e7ff;
+      --cyan-hot: #c8f9ff;
+      --violet: #9d6cff;
+      --acid: #a9ff68;
+      --amber: #ffc45c;
+      --red: #ff5d6c;
+      --muted: #7391a7;
+      --text: #d7f6ff;
+      --pad: clamp(12px, 1.4vw, 24px);
+      --radius: 14px;
+      --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+      --tech: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { background: var(--ink); scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--text);
+      font-family: var(--tech);
+      background:
+        radial-gradient(circle at 50% 28%, rgba(31, 112, 157, .15), transparent 38%),
+        radial-gradient(circle at 88% 68%, rgba(108, 58, 191, .09), transparent 32%),
+        linear-gradient(145deg, #02050b 0%, #06101d 48%, #02060d 100%);
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    body::before {
+      opacity: .22;
+      background: repeating-linear-gradient(180deg, transparent 0 3px, rgba(154, 236, 255, .045) 4px);
+      mix-blend-mode: screen;
+    }
+
+    body::after {
+      box-shadow: inset 0 0 140px rgba(0, 0, 0, .92);
+    }
+
+    button { font: inherit; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 2;
+      width: min(1920px, 100%);
+      margin: 0 auto;
+      padding: max(10px, env(safe-area-inset-top)) var(--pad) max(18px, env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      min-height: 66px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 18px;
+      border-block: 1px solid rgba(94, 226, 255, .16);
+      background: linear-gradient(90deg, transparent, rgba(8, 27, 43, .58), transparent);
+    }
+
+    .brand { min-width: 0; }
+
+    .eyebrow,
+    .micro-label,
+    .panel-kicker {
+      color: var(--muted);
+      font: 600 10px/1.2 var(--mono);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .brand h1 {
+      margin: 5px 0 0;
+      font: 700 clamp(16px, 1.7vw, 25px)/1 var(--mono);
+      letter-spacing: .08em;
+      white-space: nowrap;
+    }
+
+    .brand h1 span { color: var(--cyan); text-shadow: 0 0 18px rgba(87, 231, 255, .48); }
+
+    .global-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 7px 13px;
+      color: var(--acid);
+      border: 1px solid rgba(169, 255, 104, .25);
+      border-radius: 999px;
+      background: rgba(24, 54, 32, .28);
+      font: 700 10px/1 var(--mono);
+      letter-spacing: .13em;
+    }
+
+    .live-dot,
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 13px currentColor;
+      animation: blink 1.8s ease-in-out infinite;
+    }
+
+    .status-dot.compact { display: inline-block; width: 5px; height: 5px; color: var(--acid); }
+
+    .top-actions { display: flex; justify-content: flex-end; align-items: center; gap: 9px; }
+
+    .chip,
+    .record-btn {
+      min-height: 34px;
+      border: 1px solid rgba(87, 231, 255, .2);
+      border-radius: 7px;
+      color: #9fc7d7;
+      background: rgba(7, 19, 31, .72);
+      font: 650 10px/1 var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .chip { display: flex; align-items: center; gap: 7px; padding: 0 10px; }
+    .chip i { color: var(--acid); font-style: normal; }
+
+    .record-btn {
+      cursor: pointer;
+      padding: 0 13px;
+      transition: border-color .2s, color .2s, background .2s, box-shadow .2s;
+    }
+
+    .record-btn:hover,
+    .record-btn:focus-visible {
+      color: var(--cyan-hot);
+      border-color: var(--cyan);
+      outline: none;
+      box-shadow: 0 0 20px rgba(87, 231, 255, .18);
+    }
+
+    .recording .record-btn {
+      color: #07100c;
+      border-color: var(--acid);
+      background: var(--acid);
+      box-shadow: 0 0 20px rgba(169, 255, 104, .28);
+    }
+
+    .metric-ribbon {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      margin: 12px 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(4, 13, 24, .66);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .18);
+    }
+
+    .metric {
+      position: relative;
+      min-width: 0;
+      padding: 10px 12px 9px;
+      border-right: 1px solid var(--line);
+    }
+
+    .metric:last-child { border-right: 0; }
+
+    .metric strong {
+      display: block;
+      margin-top: 3px;
+      overflow: hidden;
+      color: #e6fbff;
+      font: 700 clamp(17px, 1.6vw, 24px)/1.05 var(--mono);
+      letter-spacing: -.05em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-shadow: 0 0 16px rgba(87, 231, 255, .16);
+    }
+
+    .metric strong em { color: var(--muted); font-size: .52em; font-style: normal; letter-spacing: 0; }
+
+    .metric::after {
+      content: "";
+      position: absolute;
+      right: 8px;
+      bottom: 7px;
+      width: 22px;
+      height: 2px;
+      background: var(--cyan);
+      box-shadow: -8px -3px 0 rgba(87, 231, 255, .28), -15px -1px 0 rgba(87, 231, 255, .12);
+    }
+
+    .command-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, .65fr);
+      grid-template-areas:
+        "network side"
+        "lower lower";
+      gap: 12px;
+    }
+
+    .panel {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(87, 231, 255, .035), transparent 35%),
+        var(--panel);
+      box-shadow: inset 0 1px 0 rgba(213, 250, 255, .035), 0 20px 60px rgba(0, 0, 0, .18);
+    }
+
+    .panel::before,
+    .panel::after {
+      content: "";
+      position: absolute;
+      z-index: 4;
+      width: 18px;
+      height: 18px;
+      pointer-events: none;
+    }
+
+    .panel::before { left: 6px; top: 6px; border-left: 1px solid var(--cyan); border-top: 1px solid var(--cyan); }
+    .panel::after { right: 6px; bottom: 6px; border-right: 1px solid rgba(157, 108, 255, .8); border-bottom: 1px solid rgba(157, 108, 255, .8); }
+
+    .panel-head {
+      position: relative;
+      z-index: 5;
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 15px;
+      border-bottom: 1px solid rgba(87, 231, 255, .11);
+      background: linear-gradient(90deg, rgba(12, 35, 53, .62), transparent);
+    }
+
+    .panel-head h2,
+    .panel-head h3 {
+      margin: 2px 0 0;
+      color: #c9eef7;
+      font: 700 12px/1.1 var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .head-code { color: var(--cyan); font: 600 9px/1 var(--mono); letter-spacing: .1em; }
+
+    .network-panel {
+      grid-area: network;
+      min-height: min(69vh, 760px);
+    }
+
+    .network-stage {
+      position: absolute;
+      inset: 47px 0 0;
+      overflow: hidden;
+      isolation: isolate;
+      background:
+        linear-gradient(rgba(46, 124, 153, .055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(46, 124, 153, .055) 1px, transparent 1px),
+        radial-gradient(circle at center, rgba(25, 132, 170, .13), transparent 38%);
+      background-size: 34px 34px, 34px 34px, auto;
+      mask-image: linear-gradient(to bottom, transparent, #000 6%, #000 96%, transparent);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, #000 6%, #000 96%, transparent);
+    }
+
+    .network-stage::before {
+      content: "";
+      position: absolute;
+      z-index: 0;
+      inset: -20% -10%;
+      opacity: .38;
+      background: conic-gradient(from 90deg at 50% 50%, transparent, rgba(87, 231, 255, .09), transparent 12%, transparent 45%, rgba(157, 108, 255, .09), transparent 62%);
+      animation: ambientRotate 24s linear infinite;
+    }
+
+    #particles,
+    #connections {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    #particles { z-index: 1; }
+    #connections { z-index: 2; overflow: visible; }
+    #agents { margin: 0; padding: 0; list-style: none; }
+
+    .route-core {
+      fill: none;
+      stroke: rgba(87, 231, 255, .22);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .route-mesh {
+      fill: none;
+      stroke: rgba(157, 108, 255, .18);
+      stroke-width: .8;
+      stroke-dasharray: 3 8;
+      vector-effect: non-scaling-stroke;
+      animation: routeDash 8s linear infinite;
+    }
+
+    .packet { filter: drop-shadow(0 0 4px currentColor); }
+
+    .core {
+      position: absolute;
+      z-index: 8;
+      left: 50%;
+      top: 52%;
+      width: clamp(180px, 20vw, 260px);
+      aspect-ratio: 1;
+      translate: -50% -50%;
+      display: grid;
+      place-items: center;
+    }
+
+    .core-halo,
+    .core-ring,
+    .core-inner,
+    .core-sweep { position: absolute; border-radius: 50%; }
+
+    .core-halo {
+      inset: -28%;
+      opacity: .7;
+      background: radial-gradient(circle, rgba(87, 231, 255, .14), transparent 65%);
+      animation: haloPulse 2.8s ease-in-out infinite;
+    }
+
+    .core-ring { border: 1px solid rgba(87, 231, 255, .48); box-shadow: inset 0 0 12px rgba(87, 231, 255, .1), 0 0 12px rgba(87, 231, 255, .08); }
+    .core-ring.r1 { inset: 0; border-style: dashed; animation: spin 16s linear infinite; }
+    .core-ring.r2 { inset: 10%; border-color: rgba(157, 108, 255, .64); border-width: 2px 1px 1px 2px; animation: spinBack 11s linear infinite; }
+    .core-ring.r3 { inset: 22%; border-style: dotted; border-width: 2px; animation: spin 7s linear infinite; }
+
+    .core-sweep {
+      inset: -7%;
+      overflow: hidden;
+      background: conic-gradient(transparent 0 80%, rgba(87, 231, 255, .05) 90%, rgba(87, 231, 255, .5));
+      mask: radial-gradient(transparent 57%, #000 58% 59%, transparent 60%);
+      animation: spin 3.8s linear infinite;
+    }
+
+    .core-inner {
+      inset: 30%;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(188, 246, 255, .7);
+      background: radial-gradient(circle at 42% 37%, #dcfdff 0 2%, #59e5ff 6%, #0f6883 26%, #071725 58%, #02070c 72%);
+      box-shadow: 0 0 22px rgba(87, 231, 255, .85), 0 0 70px rgba(87, 231, 255, .3), inset 0 0 24px rgba(198, 249, 255, .4);
+      animation: corePulse 2s ease-in-out infinite;
+    }
+
+    .core-copy {
+      position: relative;
+      z-index: 4;
+      text-align: center;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px #000;
+    }
+
+    .core-copy b { display: block; font: 800 clamp(15px, 1.45vw, 21px)/.95 var(--mono); letter-spacing: .08em; }
+    .core-copy small { display: block; margin-top: 5px; color: var(--acid); font: 800 8px/1 var(--mono); letter-spacing: .23em; }
+
+    .core-coordinates {
+      position: absolute;
+      inset: auto 0 -18px;
+      color: rgba(150, 202, 216, .65);
+      text-align: center;
+      font: 600 8px/1 var(--mono);
+      letter-spacing: .15em;
+    }
+
+    .agent {
+      --agent-color: var(--cyan);
+      position: absolute;
+      z-index: 7;
+      left: calc(var(--x) * 1%);
+      top: calc(var(--y) * 1%);
+      width: clamp(88px, 8.5vw, 124px);
+      min-height: 46px;
+      translate: -50% -50%;
+      padding: 6px 7px 5px 28px;
+      border: 1px solid rgba(87, 231, 255, .24);
+      border: 1px solid color-mix(in srgb, var(--agent-color) 34%, transparent);
+      border-radius: 6px;
+      background: linear-gradient(105deg, rgba(7, 20, 33, .96), rgba(9, 29, 44, .76));
+      box-shadow: 0 0 18px color-mix(in srgb, var(--agent-color) 8%, transparent), inset 0 0 11px rgba(128, 231, 255, .03);
+      transition: border-color .25s, filter .25s, opacity .25s;
+    }
+
+    .agent::after {
+      content: "";
+      position: absolute;
+      left: 28px;
+      right: 5px;
+      bottom: 3px;
+      height: 1px;
+      opacity: .5;
+      background: linear-gradient(90deg, var(--agent-color) var(--load), rgba(107, 140, 153, .2) var(--load));
+      transition: background .5s;
+    }
+
+    .agent-node {
+      position: absolute;
+      left: 7px;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      translate: 0 -50%;
+      border: 1px solid var(--agent-color);
+      border-radius: 50%;
+      color: var(--agent-color);
+      background: currentColor;
+      box-shadow: 0 0 12px currentColor;
+      animation: nodeBeat calc(1.7s + var(--delay)) ease-in-out infinite;
+    }
+
+    .agent-node::before,
+    .agent-node::after { content: ""; position: absolute; border: 1px solid currentColor; border-radius: 50%; }
+    .agent-node::before { inset: -4px; opacity: .3; }
+    .agent-node::after { inset: 3px; border-color: #dfffff; }
+
+    .agent-name {
+      overflow: hidden;
+      color: #d4f4fb;
+      font: 750 clamp(8px, .7vw, 10px)/1.1 var(--mono);
+      letter-spacing: .035em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .agent-meta {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+      overflow: hidden;
+      color: var(--agent-color);
+      font: 650 7px/1 var(--mono);
+      letter-spacing: .04em;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .agent-meta span:last-child { color: #607f91; }
+    .agent.signal { filter: brightness(1.45); border-color: var(--agent-color); }
+
+    .network-legend {
+      position: absolute;
+      z-index: 9;
+      right: 12px;
+      bottom: 10px;
+      display: flex;
+      gap: 10px;
+      color: #6c8999;
+      font: 600 8px/1 var(--mono);
+      text-transform: uppercase;
+    }
+
+    .network-legend span { display: flex; align-items: center; gap: 5px; }
+    .network-legend i { width: 12px; height: 2px; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+    .network-legend span:last-child i { background: var(--violet); }
+
+    .side-column {
+      grid-area: side;
+      display: grid;
+      grid-template-rows: minmax(305px, 1.25fr) minmax(220px, .8fr);
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .feed-list {
+      height: calc(100% - 47px);
+      min-height: 260px;
+      margin: 0;
+      padding: 7px 12px 12px;
+      overflow: hidden;
+      list-style: none;
+    }
+
+    .feed-item {
+      display: grid;
+      grid-template-columns: 52px 7px 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(87, 231, 255, .08);
+      animation: feedIn .35s ease-out both;
+    }
+
+    .feed-time { color: #628397; font: 600 9px/1.35 var(--mono); }
+    .feed-mark { width: 5px; height: 5px; margin-top: 4px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+    .feed-item[data-tone="acid"] .feed-mark { background: var(--acid); box-shadow: 0 0 8px var(--acid); }
+    .feed-item[data-tone="violet"] .feed-mark { background: var(--violet); box-shadow: 0 0 8px var(--violet); }
+    .feed-item[data-tone="amber"] .feed-mark { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
+    .feed-copy { color: #a8c6d1; font: 500 10px/1.35 var(--mono); }
+    .feed-copy b { color: #e0f8fc; font-weight: 700; }
+
+    .signal-body {
+      display: grid;
+      grid-template-columns: .8fr 1.2fr;
+      gap: 14px;
+      align-items: center;
+      min-height: calc(100% - 47px);
+      padding: 12px 15px 15px;
+    }
+
+    .radar {
+      position: relative;
+      width: min(132px, 100%);
+      aspect-ratio: 1;
+      margin: auto;
+      overflow: hidden;
+      border: 1px solid rgba(87, 231, 255, .32);
+      border-radius: 50%;
+      background:
+        linear-gradient(transparent 49.5%, rgba(87, 231, 255, .2) 50%, transparent 50.5%),
+        linear-gradient(90deg, transparent 49.5%, rgba(87, 231, 255, .2) 50%, transparent 50.5%),
+        repeating-radial-gradient(circle, transparent 0 18%, rgba(87, 231, 255, .11) 18.8% 19.5%);
+      box-shadow: inset 0 0 24px rgba(87, 231, 255, .06);
+    }
+
+    .radar::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, rgba(87, 231, 255, .42), transparent 20%);
+      animation: spin 3.4s linear infinite;
+    }
+
+    .radar-blip { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--acid); box-shadow: 0 0 9px var(--acid); animation: blink 2s infinite; }
+    .radar-blip.b1 { left: 27%; top: 38%; }
+    .radar-blip.b2 { left: 68%; top: 26%; animation-delay: -.7s; }
+    .radar-blip.b3 { left: 58%; top: 70%; animation-delay: -1.2s; }
+
+    .signal-stats { min-width: 0; }
+
+    .signal-row { margin-bottom: 11px; }
+    .signal-row:last-child { margin-bottom: 0; }
+    .signal-row header { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; color: #7e9dac; font: 600 8px/1 var(--mono); text-transform: uppercase; }
+    .signal-row header b { color: #c6eaf2; font-weight: 650; }
+    .signal-track { height: 4px; overflow: hidden; background: rgba(99, 142, 157, .16); }
+    .signal-track i { display: block; width: var(--value); height: 100%; background: linear-gradient(90deg, var(--violet), var(--cyan)); box-shadow: 0 0 7px var(--cyan); transition: width .7s ease; }
+
+    .lower-grid {
+      grid-area: lower;
+      display: grid;
+      grid-template-columns: 1.25fr .75fr .72fr;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .operations { min-height: 274px; }
+
+    .queue-list {
+      display: grid;
+      gap: 4px;
+      padding: 10px 13px 13px;
+    }
+
+    .queue-item {
+      display: grid;
+      grid-template-columns: minmax(110px, 1.3fr) minmax(100px, 1fr) 68px 35px;
+      gap: 10px;
+      align-items: center;
+      min-height: 34px;
+      padding: 5px 7px;
+      border: 1px solid rgba(97, 203, 228, .07);
+      border-radius: 5px;
+      background: rgba(9, 27, 41, .44);
+    }
+
+    .queue-name { overflow: hidden; color: #bad7df; font: 600 9px/1.2 var(--mono); text-overflow: ellipsis; white-space: nowrap; }
+    .queue-name b { margin-right: 6px; color: var(--cyan); }
+    .queue-track { height: 5px; overflow: hidden; border-radius: 5px; background: rgba(103, 139, 151, .17); }
+    .queue-track i { display: block; width: var(--progress); height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--violet), var(--cyan)); box-shadow: 0 0 8px rgba(87, 231, 255, .65); transition: width .7s ease; }
+    .queue-status { color: var(--acid); font: 700 7px/1 var(--mono); letter-spacing: .04em; text-align: right; }
+    .queue-status[data-status="REVIEWING"] { color: var(--amber); }
+    .queue-status[data-status="SYNCING"] { color: var(--violet); }
+    .queue-status[data-status="COMPLETE"] { color: var(--cyan); }
+    .queue-pct { color: #7897a5; font: 650 8px/1 var(--mono); text-align: right; }
+
+    .spectrum-wrap { padding: 15px; }
+
+    .spectrum {
+      height: 102px;
+      display: flex;
+      align-items: end;
+      gap: 4px;
+      padding: 10px 8px 4px;
+      border-bottom: 1px solid rgba(87, 231, 255, .18);
+      background: linear-gradient(to top, rgba(87, 231, 255, .045), transparent);
+    }
+
+    .spectrum i {
+      flex: 1;
+      height: var(--h);
+      min-height: 8%;
+      background: linear-gradient(to top, rgba(157, 108, 255, .48), var(--cyan));
+      box-shadow: 0 0 7px rgba(87, 231, 255, .24);
+      transform-origin: bottom;
+      animation: spectrum calc(.7s + var(--n) * .04s) ease-in-out infinite alternate;
+    }
+
+    .sparkline {
+      width: 100%;
+      height: 55px;
+      margin-top: 10px;
+      overflow: visible;
+    }
+
+    .sparkline polyline { fill: none; stroke: var(--acid); stroke-width: 2; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px rgba(169, 255, 104, .5)); }
+    .sparkline .fill { fill: url(#sparkFill); stroke: none; opacity: .26; }
+
+    .matrix-body {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 7px;
+      padding: 19px 18px 15px;
+    }
+
+    .matrix-dot {
+      aspect-ratio: 1;
+      border-radius: 2px;
+      background: rgba(86, 127, 143, .16);
+      transition: background .4s, box-shadow .4s, transform .4s;
+    }
+
+    .matrix-dot.on { background: var(--cyan); box-shadow: 0 0 8px rgba(87, 231, 255, .65); transform: scale(1.12); }
+    .matrix-dot.hot { background: var(--acid); box-shadow: 0 0 8px rgba(169, 255, 104, .6); }
+    .matrix-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 15px; }
+    .matrix-summary div { padding: 8px; border: 1px solid rgba(87, 231, 255, .08); background: rgba(7, 22, 34, .45); }
+    .matrix-summary b { display: block; color: #d3f5fb; font: 700 15px/1 var(--mono); }
+    .matrix-summary span { display: block; margin-top: 4px; color: #617f8f; font: 600 7px/1 var(--mono); text-transform: uppercase; }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 3px 0;
+      color: #476474;
+      font: 600 8px/1.3 var(--mono);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .footer b { color: #708c99; }
+
+    @keyframes spin { to { rotate: 360deg; } }
+    @keyframes spinBack { to { rotate: -360deg; } }
+    @keyframes routeDash { to { stroke-dashoffset: -44; } }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+    @keyframes haloPulse { 0%, 100% { scale: .9; opacity: .35; } 50% { scale: 1.08; opacity: .8; } }
+    @keyframes corePulse { 0%, 100% { scale: .96; filter: brightness(.92); } 50% { scale: 1.03; filter: brightness(1.22); } }
+    @keyframes nodeBeat { 0%, 100% { scale: .82; opacity: .58; } 45% { scale: 1.08; opacity: 1; } }
+    @keyframes ambientRotate { to { rotate: 360deg; } }
+    @keyframes spectrum { from { scale-y: .45; opacity: .55; } to { scale-y: 1; opacity: 1; } }
+    @keyframes feedIn { from { opacity: 0; translate: 0 -7px; } }
+
+    @media (max-width: 1050px) {
+      .command-grid { grid-template-columns: minmax(0, 1.45fr) minmax(260px, .7fr); }
+      .network-panel { min-height: 680px; }
+      .lower-grid { grid-template-columns: 1fr 1fr; }
+      .operations { grid-column: 1 / -1; }
+      .agent { width: 92px; }
+      .metric-ribbon { grid-template-columns: repeat(4, 1fr); }
+      .metric:nth-child(4) { border-right: 0; }
+      .metric:nth-child(n+5) { border-top: 1px solid var(--line); }
+    }
+
+    @media (max-width: 760px) {
+      :root { --pad: 8px; }
+      body::after { box-shadow: inset 0 0 70px rgba(0, 0, 0, .8); }
+      .shell { padding-top: max(6px, env(safe-area-inset-top)); }
+      .topbar { min-height: 54px; grid-template-columns: 1fr auto; gap: 8px; padding: 0 3px; }
+      .brand .eyebrow { display: none; }
+      .brand h1 { margin: 0; font-size: clamp(14px, 4vw, 19px); }
+      .global-status { display: none; }
+      .top-actions { gap: 5px; }
+      .chip { display: none; }
+      .record-btn { min-height: 32px; padding: 0 9px; font-size: 8px; }
+      .metric-ribbon { margin: 8px 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .metric { padding: 7px 7px 6px; }
+      .metric:nth-child(n+5) { display: none; }
+      .metric strong { font-size: clamp(14px, 4.4vw, 19px); }
+      .metric .micro-label { font-size: 7px; letter-spacing: .08em; }
+      .metric::after { display: none; }
+      .command-grid { display: flex; flex-direction: column; gap: 8px; }
+      .network-panel { order: 0; min-height: calc(100svh - 118px); max-height: 760px; }
+      .network-stage { background-size: 25px 25px, 25px 25px, auto; }
+      .panel-head { min-height: 41px; padding: 9px 12px; }
+      .panel-head h2, .panel-head h3 { font-size: 10px; }
+      .network-stage { top: 42px; }
+      .core { top: 51%; width: clamp(145px, 42vw, 176px); }
+      .core-copy b { font-size: 13px; }
+      .core-copy small { font-size: 7px; }
+      .agent {
+        left: calc(var(--mx) * 1%);
+        top: calc(var(--my) * 1%);
+        width: clamp(70px, 20.5vw, 85px);
+        min-height: 39px;
+        padding: 5px 4px 4px 23px;
+      }
+      .agent-node { left: 5px; width: 11px; height: 11px; }
+      .agent::after { left: 23px; }
+      .agent-name { font-size: clamp(7px, 2.05vw, 9px); }
+      .agent-meta { margin-top: 3px; font-size: 6px; }
+      .network-legend { display: none; }
+      .side-column { order: 2; display: grid; grid-template-rows: 420px 240px; gap: 8px; }
+      .lower-grid { order: 1; display: grid; grid-template-columns: 1fr; gap: 8px; }
+      .operations { grid-column: auto; min-height: 300px; }
+      .queue-item { grid-template-columns: minmax(100px, 1.1fr) minmax(75px, 1fr) 57px 29px; gap: 6px; }
+      .queue-status { font-size: 6px; }
+      .matrix-body { gap: 9px; }
+      .footer { flex-direction: column; gap: 4px; font-size: 7px; }
+      .recording .topbar { border-bottom: 0; }
+      .recording .metric-ribbon,
+      .recording .side-column,
+      .recording .lower-grid,
+      .recording .footer { display: none; }
+      .recording .network-panel { min-height: calc(100svh - 64px); }
+    }
+
+    @media (max-width: 390px) {
+      .head-code { display: none; }
+      .agent { width: 72px; }
+      .agent-meta span:last-child { display: none; }
+      .queue-name { font-size: 8px; }
+      .feed-list { padding-inline: 9px; }
+    }
+
+    @media (min-width: 761px) {
+      .recording .secondary-control,
+      .recording .metric-ribbon,
+      .recording .footer { display: none; }
+      .recording .network-panel { min-height: calc(100vh - 105px); }
+      .recording .side-column { grid-template-rows: 1fr .7fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="eyebrow">Hackea tu tiempo / Neural Operations</div>
+        <h1><span>ORION</span> // MISSION CONTROL</h1>
+      </div>
+      <div class="global-status" role="status" aria-label="Todos los sistemas operativos">
+        <span class="live-dot" aria-hidden="true"></span> ALL SYSTEMS NOMINAL
+      </div>
+      <div class="top-actions">
+        <div class="chip secondary-control"><i>●</i> AUTO DEMO</div>
+        <div class="chip secondary-control">UTC <span id="utc-clock">00:00:00</span></div>
+        <button class="record-btn" id="record-button" type="button" aria-pressed="false" title="Modo grabación (R)">MODO GRABACIÓN</button>
+      </div>
+    </header>
+
+    <section class="metric-ribbon" aria-label="Telemetría principal">
+      <div class="metric"><span class="micro-label">Agentes activos</span><strong id="m-agents">20<em>/20</em></strong></div>
+      <div class="metric"><span class="micro-label">Tareas procesadas</span><strong id="m-tasks">08,472</strong></div>
+      <div class="metric"><span class="micro-label">Operaciones / min</span><strong id="m-ops">1,284</strong></div>
+      <div class="metric"><span class="micro-label">Latencia neural</span><strong id="m-latency">18<em>ms</em></strong></div>
+      <div class="metric"><span class="micro-label">Cola global</span><strong id="m-queue">36</strong></div>
+      <div class="metric"><span class="micro-label">Sincronizaciones</span><strong id="m-sync">2,918</strong></div>
+      <div class="metric"><span class="micro-label">Uso sistema</span><strong id="m-system">74<em>%</em></strong></div>
+    </section>
+
+    <main class="command-grid">
+      <section class="panel network-panel" aria-labelledby="network-title">
+        <header class="panel-head">
+          <div><span class="panel-kicker">Live topology</span><h2 id="network-title">Red Operativa // 20 Agentes</h2></div>
+          <span class="head-code">ORION-NET // ENCRYPTED</span>
+        </header>
+        <div class="network-stage" id="network-stage">
+          <canvas id="particles" aria-hidden="true"></canvas>
+          <svg id="connections" aria-hidden="true"></svg>
+          <ul id="agents" aria-label="20 agentes de inteligencia artificial activos"></ul>
+
+          <div class="core" id="orion-core" role="img" aria-label="ORION CORE, online">
+            <span class="core-halo"></span>
+            <span class="core-ring r1"></span>
+            <span class="core-ring r2"></span>
+            <span class="core-ring r3"></span>
+            <span class="core-sweep"></span>
+            <span class="core-inner"></span>
+            <span class="core-copy"><b>ORION<br>CORE</b><small>● Online</small></span>
+            <span class="core-coordinates">CORE-01 // 99.998% UPTIME</span>
+          </div>
+
+          <div class="network-legend" aria-hidden="true"><span><i></i> Core link</span><span><i></i> Agent mesh</span></div>
+        </div>
+      </section>
+
+      <aside class="side-column secondary-control" aria-label="Inteligencia en tiempo real">
+        <section class="panel" aria-labelledby="feed-title">
+          <header class="panel-head">
+            <div><span class="panel-kicker">Stream 04</span><h3 id="feed-title">Feed de eventos</h3></div>
+            <span class="head-code">LIVE // <span id="event-count">1284</span> EVT</span>
+          </header>
+          <ol class="feed-list" id="feed-list" aria-label="Eventos ficticios del sistema"></ol>
+        </section>
+
+        <section class="panel" aria-labelledby="signal-title">
+          <header class="panel-head">
+            <div><span class="panel-kicker">Signal scope</span><h3 id="signal-title">Actividad neural</h3></div>
+            <span class="head-code">SCAN 360°</span>
+          </header>
+          <div class="signal-body">
+            <div class="radar" aria-hidden="true"><i class="radar-blip b1"></i><i class="radar-blip b2"></i><i class="radar-blip b3"></i></div>
+            <div class="signal-stats">
+              <div class="signal-row"><header><span>Coherencia</span><b id="coherence-value">96%</b></header><div class="signal-track"><i id="coherence-bar" style="--value:96%"></i></div></div>
+              <div class="signal-row"><header><span>Ancho banda</span><b id="bandwidth-value">82%</b></header><div class="signal-track"><i id="bandwidth-bar" style="--value:82%"></i></div></div>
+              <div class="signal-row"><header><span>Contexto</span><b id="context-value">91%</b></header><div class="signal-track"><i id="context-bar" style="--value:91%"></i></div></div>
+              <div class="signal-row"><header><span>Confianza</span><b id="trust-value">98%</b></header><div class="signal-track"><i id="trust-bar" style="--value:98%"></i></div></div>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="lower-grid" aria-label="Telemetría secundaria">
+        <article class="panel operations" aria-labelledby="operations-title">
+          <header class="panel-head">
+            <div><span class="panel-kicker">Execution engine</span><h3 id="operations-title">Operaciones en curso</h3></div>
+            <span class="head-code"><span class="status-dot compact"></span> 07 THREADS</span>
+          </header>
+          <div class="queue-list" id="queue-list"></div>
+        </article>
+
+        <article class="panel" aria-labelledby="throughput-title">
+          <header class="panel-head">
+            <div><span class="panel-kicker">Flow monitor</span><h3 id="throughput-title">Throughput</h3></div>
+            <span class="head-code" id="flow-rate">1.28K / MIN</span>
+          </header>
+          <div class="spectrum-wrap">
+            <div class="spectrum" id="spectrum" role="img" aria-label="Espectro de actividad"></div>
+            <svg class="sparkline" id="sparkline" viewBox="0 0 320 55" preserveAspectRatio="none">
+              <title>Tendencia operativa</title>
+              <defs><linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9ff68"/><stop offset="1" stop-color="#a9ff68" stop-opacity="0"/></linearGradient></defs>
+              <polygon class="fill" id="spark-fill" points="0,55 320,55"></polygon>
+              <polyline id="spark-line" points=""></polyline>
+            </svg>
+          </div>
+        </article>
+
+        <article class="panel" aria-labelledby="matrix-title">
+          <header class="panel-head">
+            <div><span class="panel-kicker">Memory lattice</span><h3 id="matrix-title">Matriz de contexto</h3></div>
+            <span class="head-code">64 SHARDS</span>
+          </header>
+          <div class="matrix-body" id="matrix" role="img" aria-label="Matriz de memoria activa"></div>
+          <div class="matrix-summary">
+            <div><b id="tokens-value">2.4M</b><span>Tokens indexados</span></div>
+            <div><b id="recall-value">14ms</b><span>Recall medio</span></div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer secondary-control">
+      <span><b>Hackea tu tiempo</b> // Autonomous Intelligence Fabric</span>
+      <span>F: FULLSCREEN &nbsp; R: RECORD MODE &nbsp; AUTO DEMO: ACTIVE</span>
+      <span>Fictional telemetry // No private data</span>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+      const random = (min, max) => Math.random() * (max - min) + min;
+      const pick = list => list[Math.floor(Math.random() * list.length)];
+      const format = value => Math.round(value).toLocaleString('en-US');
+
+      // Posiciones separadas para escritorio y vertical: 20 agentes exactos.
+      const agents = [
+        { name: 'Strategy', code: 'STR-01', status: 'PLANNING', x: 17, y: 15, mx: 12, my: 15, color: 'cyan' },
+        { name: 'Research', code: 'RSR-02', status: 'SCANNING', x: 33, y: 9, mx: 37, my: 8, color: 'violet' },
+        { name: 'Content', code: 'CNT-03', status: 'WRITING', x: 50, y: 8, mx: 63, my: 8, color: 'cyan' },
+        { name: 'Visual', code: 'VIS-04', status: 'RENDERING', x: 67, y: 9, mx: 88, my: 15, color: 'violet' },
+        { name: 'UGC', code: 'UGC-05', status: 'CURATING', x: 83, y: 15, mx: 12, my: 29, color: 'acid' },
+        { name: 'Sales', code: 'SLS-06', status: 'QUALIFYING', x: 91, y: 30, mx: 88, my: 29, color: 'cyan' },
+        { name: 'CRM', code: 'CRM-07', status: 'SYNCING', x: 92, y: 48, mx: 12, my: 43, color: 'violet' },
+        { name: 'Finance', code: 'FIN-08', status: 'MODELING', x: 91, y: 66, mx: 88, my: 43, color: 'amber' },
+        { name: 'Support', code: 'SUP-09', status: 'RESOLVING', x: 83, y: 83, mx: 12, my: 57, color: 'acid' },
+        { name: 'Operations', code: 'OPS-10', status: 'EXECUTING', x: 67, y: 91, mx: 88, my: 57, color: 'cyan' },
+        { name: 'Analytics', code: 'ANL-11', status: 'MEASURING', x: 50, y: 92, mx: 12, my: 71, color: 'violet' },
+        { name: 'Automation', code: 'AUT-12', status: 'ROUTING', x: 33, y: 91, mx: 88, my: 71, color: 'cyan' },
+        { name: 'Growth', code: 'GRW-13', status: 'TESTING', x: 17, y: 83, mx: 12, my: 85, color: 'acid' },
+        { name: 'Product', code: 'PRD-14', status: 'BUILDING', x: 9, y: 66, mx: 37, my: 92, color: 'violet' },
+        { name: 'Community', code: 'COM-15', status: 'LISTENING', x: 8, y: 48, mx: 63, my: 92, color: 'cyan' },
+        { name: 'Learning', code: 'LRN-16', status: 'INDEXING', x: 9, y: 30, mx: 88, my: 85, color: 'amber' },
+        { name: 'Copy Chief', code: 'CPY-17', status: 'REVIEWING', x: 26, y: 37, mx: 37, my: 25, color: 'cyan' },
+        { name: 'Campaigns', code: 'CAM-18', status: 'LAUNCHING', x: 74, y: 37, mx: 63, my: 25, color: 'violet' },
+        { name: 'Data Intel', code: 'DAT-19', status: 'MAPPING', x: 27, y: 65, mx: 37, my: 77, color: 'acid' },
+        { name: 'Quality', code: 'QAL-20', status: 'VERIFYING', x: 73, y: 65, mx: 63, my: 77, color: 'cyan' }
+      ];
+
+      const colorMap = { cyan: '#57e7ff', violet: '#9d6cff', acid: '#a9ff68', amber: '#ffc45c' };
+      const agentsRoot = $('#agents');
+
+      agents.forEach((agent, index) => {
+        const node = document.createElement('li');
+        node.className = 'agent';
+        node.dataset.index = index;
+        node.style.cssText = `--x:${agent.x};--y:${agent.y};--mx:${agent.mx};--my:${agent.my};--agent-color:${colorMap[agent.color]};--delay:${(index % 7) * .13}s;--load:${Math.round(random(42, 94))}%`;
+        node.setAttribute('aria-label', `Agente ${agent.name}, ${agent.status}`);
+        node.innerHTML = `<i class="agent-node" aria-hidden="true"></i><div class="agent-name">${agent.name}</div><div class="agent-meta"><span>${agent.status}</span><span>${agent.code}</span></div>`;
+        agentsRoot.appendChild(node);
+      });
+
+      // Red SVG recalculada al cambiar tamaño para mantener los enlaces anclados.
+      const stage = $('#network-stage');
+      const svg = $('#connections');
+      const core = $('#orion-core');
+      const agentNodes = [...document.querySelectorAll('.agent')];
+      const meshPairs = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,0],[16,0],[16,14],[17,3],[17,5],[18,11],[18,13],[19,7],[19,9],[16,18],[17,19]];
+      let links = [];
+      let packets = [];
+      let stageSize = { width: 1, height: 1 };
+
+      const centerInStage = element => {
+        const box = element.getBoundingClientRect();
+        const base = stage.getBoundingClientRect();
+        return { x: box.left - base.left + box.width / 2, y: box.top - base.top + box.height / 2 };
+      };
+
+      function drawNetwork() {
+        const rect = stage.getBoundingClientRect();
+        stageSize = { width: rect.width, height: rect.height };
+        svg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
+        svg.replaceChildren();
+        links = [];
+        packets = [];
+        const corePoint = centerInStage(core);
+        const points = agentNodes.map(centerInStage);
+        const ns = 'http://www.w3.org/2000/svg';
+
+        points.forEach((point, index) => {
+          const path = document.createElementNS(ns, 'path');
+          const bend = (index % 2 ? 1 : -1) * 18;
+          const midX = (corePoint.x + point.x) / 2 + bend;
+          const midY = (corePoint.y + point.y) / 2 - bend;
+          path.setAttribute('d', `M ${corePoint.x} ${corePoint.y} Q ${midX} ${midY} ${point.x} ${point.y}`);
+          path.setAttribute('class', 'route-core');
+          svg.appendChild(path);
+          links.push({ a: corePoint, b: point, tone: colorMap[agents[index].color] });
+        });
+
+        meshPairs.forEach(([a, b]) => {
+          const path = document.createElementNS(ns, 'path');
+          path.setAttribute('d', `M ${points[a].x} ${points[a].y} L ${points[b].x} ${points[b].y}`);
+          path.setAttribute('class', 'route-mesh');
+          svg.appendChild(path);
+          links.push({ a: points[a], b: points[b], tone: '#9d6cff' });
+        });
+
+        if (!reducedMotion) {
+          for (let i = 0; i < 22; i += 1) {
+            const circle = document.createElementNS(ns, 'circle');
+            const linkIndex = i < 16 ? i : Math.floor(random(0, links.length));
+            circle.setAttribute('r', i % 4 === 0 ? '2.6' : '1.7');
+            circle.setAttribute('fill', links[linkIndex].tone);
+            circle.setAttribute('class', 'packet');
+            circle.style.color = links[linkIndex].tone;
+            svg.appendChild(circle);
+            packets.push({ element: circle, link: linkIndex, progress: Math.random(), speed: random(.00006, .00018), reverse: Math.random() > .72 });
+          }
+        }
+      }
+
+      let lastPacketTime = performance.now();
+      function animatePackets(now) {
+        const delta = Math.min(34, now - lastPacketTime);
+        lastPacketTime = now;
+        packets.forEach(packet => {
+          packet.progress = (packet.progress + packet.speed * delta) % 1;
+          const t = packet.reverse ? 1 - packet.progress : packet.progress;
+          const link = links[packet.link];
+          if (!link) return;
+          const x = link.a.x + (link.b.x - link.a.x) * t;
+          const y = link.a.y + (link.b.y - link.a.y) * t;
+          packet.element.setAttribute('cx', x.toFixed(2));
+          packet.element.setAttribute('cy', y.toFixed(2));
+          packet.element.setAttribute('opacity', String(Math.sin(Math.PI * t) * .8 + .2));
+        });
+        if (!reducedMotion) requestAnimationFrame(animatePackets);
+      }
+
+      // Partículas locales en canvas: sin imágenes, fuentes ni peticiones remotas.
+      const canvas = $('#particles');
+      const ctx = canvas.getContext('2d');
+      let dust = [];
+      let canvasDpr = 1;
+
+      function resizeParticles() {
+        const box = stage.getBoundingClientRect();
+        canvasDpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.max(1, Math.floor(box.width * canvasDpr));
+        canvas.height = Math.max(1, Math.floor(box.height * canvasDpr));
+        canvas.style.width = `${box.width}px`;
+        canvas.style.height = `${box.height}px`;
+        ctx.setTransform(canvasDpr, 0, 0, canvasDpr, 0, 0);
+        const count = reducedMotion ? 0 : clamp(Math.floor(box.width * box.height / 14000), 22, 70);
+        dust = Array.from({ length: count }, () => ({
+          x: random(0, box.width), y: random(0, box.height), vx: random(-.08, .08), vy: random(-.15, -.025), size: random(.35, 1.35), alpha: random(.12, .55), cyan: Math.random() > .24
+        }));
+      }
+
+      function animateParticles() {
+        const { width, height } = stageSize;
+        ctx.clearRect(0, 0, width, height);
+        dust.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.y < -4) { p.y = height + 4; p.x = random(0, width); }
+          if (p.x < -4) p.x = width + 4;
+          if (p.x > width + 4) p.x = -4;
+          ctx.beginPath();
+          ctx.fillStyle = p.cyan ? `rgba(87,231,255,${p.alpha})` : `rgba(157,108,255,${p.alpha})`;
+          ctx.shadowBlur = 7;
+          ctx.shadowColor = p.cyan ? '#57e7ff' : '#9d6cff';
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.shadowBlur = 0;
+        if (!reducedMotion) requestAnimationFrame(animateParticles);
+      }
+
+      const resizeObserver = new ResizeObserver(() => {
+        window.requestAnimationFrame(() => { drawNetwork(); resizeParticles(); });
+      });
+      resizeObserver.observe(stage);
+
+      // Cola operativa. Las transiciones mantienen siempre siete trabajos visibles.
+      const taskNames = [
+        'Mapa de oportunidad Q3', 'Secuencia de bienvenida', 'Radar de tendencias', 'Guiones contenido semanal',
+        'Diagnóstico de conversión', 'Panel executive Orion', 'Segmentación comunidad', 'Sistema de follow-up',
+        'Síntesis feedback clientes', 'Brief visual campaña', 'Revisión flujo de ventas', 'Modelo forecast semanal'
+      ];
+      const statuses = ['EXECUTING', 'SYNCING', 'REVIEWING'];
+      const queue = Array.from({ length: 7 }, (_, i) => ({ name: taskNames[i], progress: Math.round(random(16, 89)), status: statuses[i % statuses.length] }));
+      const queueRoot = $('#queue-list');
+
+      function renderQueue() {
+        queueRoot.replaceChildren(...queue.map((task, index) => {
+          const row = document.createElement('div');
+          row.className = 'queue-item';
+          row.innerHTML = `<div class="queue-name"><b>${String(index + 1).padStart(2, '0')}</b>${task.name}</div><div class="queue-track"><i style="--progress:${task.progress}%"></i></div><div class="queue-status" data-status="${task.status}">${task.status}</div><div class="queue-pct">${task.progress}%</div>`;
+          return row;
+        }));
+      }
+
+      function tickQueue() {
+        queue.forEach(task => {
+          task.progress = Math.min(100, task.progress + Math.round(random(1, 6)));
+          if (task.progress > 88 && task.progress < 100) task.status = 'REVIEWING';
+          if (task.progress >= 100) task.status = 'COMPLETE';
+        });
+        const complete = queue.findIndex(task => task.progress >= 100);
+        if (complete >= 0) {
+          const used = new Set(queue.map(task => task.name));
+          const candidates = taskNames.filter(name => !used.has(name));
+          queue[complete] = { name: pick(candidates.length ? candidates : taskNames), progress: Math.round(random(4, 16)), status: pick(['EXECUTING', 'SYNCING']) };
+        }
+        renderQueue();
+      }
+
+      // Feed narrativo ficticio, conectado con Orion y Hackea tu tiempo.
+      const events = [
+        ['Strategy', 'priorizó 3 palancas para el sprint semanal', 'cyan'],
+        ['Research', 'detectó una señal emergente en el radar de mercado', 'violet'],
+        ['Content', 'completó el borrador “Hackea tu foco”', 'acid'],
+        ['Visual', 'sincronizó 12 variantes con la narrativa Orion', 'violet'],
+        ['Sales', 'calificó una nueva oportunidad de alta afinidad', 'acid'],
+        ['CRM', 'actualizó la secuencia de seguimiento inteligente', 'cyan'],
+        ['Finance', 'recalculó el forecast del escenario base', 'amber'],
+        ['Support', 'resolvió una consulta y archivó el aprendizaje', 'acid'],
+        ['Ops', 'redistribuyó carga entre 4 agentes disponibles', 'cyan'],
+        ['Analytics', 'validó un incremento de conversión simulado', 'violet'],
+        ['Automation', 'activó el flujo Tiempo → Impacto', 'cyan'],
+        ['Quality', 'aprobó la salida tras verificación semántica', 'acid'],
+        ['ORION CORE', 'fusionó contexto de 20 agentes', 'amber'],
+        ['Learning', 'indexó 48 fragmentos de conocimiento operativo', 'violet']
+      ];
+      const feedRoot = $('#feed-list');
+      let eventCounter = 1284;
+
+      function timeStamp(offsetSeconds = 0) {
+        const date = new Date(Date.now() - offsetSeconds * 1000);
+        return date.toLocaleTimeString('es-ES', { hour12: false });
+      }
+
+      function addFeedEvent(seed, initial = false) {
+        const [agent, message, tone] = seed || pick(events);
+        const item = document.createElement('li');
+        item.className = 'feed-item';
+        item.dataset.tone = tone;
+        item.innerHTML = `<time class="feed-time">${timeStamp(initial ? random(6, 70) : 0)}</time><i class="feed-mark" aria-hidden="true"></i><div class="feed-copy"><b>${agent}</b> ${message}</div>`;
+        feedRoot.prepend(item);
+        while (feedRoot.children.length > 9) feedRoot.lastElementChild.remove();
+        eventCounter += initial ? 0 : 1;
+        $('#event-count').textContent = String(eventCounter);
+      }
+
+      [...events].slice(0, 9).reverse().forEach(event => addFeedEvent(event, true));
+
+      // Mini visualizaciones generadas con elementos nativos.
+      const spectrum = $('#spectrum');
+      for (let i = 0; i < 30; i += 1) {
+        const bar = document.createElement('i');
+        bar.style.cssText = `--h:${Math.round(random(18, 96))}%;--n:${i % 8}`;
+        spectrum.appendChild(bar);
+      }
+
+      const matrix = $('#matrix');
+      for (let i = 0; i < 60; i += 1) {
+        const dot = document.createElement('i');
+        dot.className = `matrix-dot${Math.random() > .55 ? ' on' : ''}${Math.random() > .91 ? ' hot' : ''}`;
+        dot.setAttribute('aria-hidden', 'true');
+        matrix.appendChild(dot);
+      }
+
+      let sparkData = Array.from({ length: 28 }, (_, i) => 36 + Math.sin(i * .65) * 8 + random(-5, 5) + i * .25);
+      function renderSpark() {
+        const points = sparkData.map((value, i) => `${(i / (sparkData.length - 1) * 320).toFixed(1)},${clamp(55 - value, 4, 51).toFixed(1)}`).join(' ');
+        $('#spark-line').setAttribute('points', points);
+        $('#spark-fill').setAttribute('points', `0,55 ${points} 320,55`);
+      }
+
+      const metricState = { tasks: 8472, ops: 1284, latency: 18, queue: 36, sync: 2918, system: 74 };
+      function updateTelemetry() {
+        metricState.tasks += Math.round(random(3, 11));
+        metricState.ops = clamp(metricState.ops + Math.round(random(-31, 34)), 1120, 1480);
+        metricState.latency = clamp(metricState.latency + Math.round(random(-2, 3)), 12, 29);
+        metricState.queue = clamp(metricState.queue + Math.round(random(-4, 5)), 18, 54);
+        metricState.sync += Math.round(random(4, 15));
+        metricState.system = clamp(metricState.system + Math.round(random(-3, 4)), 62, 89);
+        $('#m-tasks').textContent = format(metricState.tasks).padStart(6, '0');
+        $('#m-ops').textContent = format(metricState.ops);
+        $('#m-latency').innerHTML = `${metricState.latency}<em>ms</em>`;
+        $('#m-queue').textContent = String(metricState.queue).padStart(2, '0');
+        $('#m-sync').textContent = format(metricState.sync);
+        $('#m-system').innerHTML = `${metricState.system}<em>%</em>`;
+        $('#flow-rate').textContent = `${(metricState.ops / 1000).toFixed(2)}K / MIN`;
+
+        [['coherence', 92, 99], ['bandwidth', 76, 91], ['context', 86, 98], ['trust', 94, 99]].forEach(([id, min, max]) => {
+          const value = Math.round(random(min, max));
+          $(`#${id}-value`).textContent = `${value}%`;
+          $(`#${id}-bar`).style.setProperty('--value', `${value}%`);
+        });
+
+        sparkData = [...sparkData.slice(1), clamp(sparkData.at(-1) + random(-7, 8), 20, 50)];
+        renderSpark();
+      }
+
+      function pulseAgent() {
+        const node = pick(agentNodes);
+        node.classList.add('signal');
+        const meta = $('.agent-meta span', node);
+        const verbs = ['TRANSMITTING', 'EXECUTING', 'SYNCING', 'ANALYZING', 'COMPLETE'];
+        meta.textContent = pick(verbs);
+        node.style.setProperty('--load', `${Math.round(random(45, 98))}%`);
+        window.setTimeout(() => node.classList.remove('signal'), 650);
+      }
+
+      function updateMatrix() {
+        const dots = [...document.querySelectorAll('.matrix-dot')];
+        for (let i = 0; i < 7; i += 1) {
+          const dot = pick(dots);
+          dot.classList.toggle('on');
+          dot.classList.toggle('hot', Math.random() > .8);
+        }
+        $('#tokens-value').textContent = `${random(2.38, 2.67).toFixed(1)}M`;
+        $('#recall-value').textContent = `${Math.round(random(11, 18))}ms`;
+      }
+
+      function updateClock() {
+        $('#utc-clock').textContent = new Date().toLocaleTimeString('en-GB', { timeZone: 'UTC', hour12: false });
+      }
+
+      // Fullscreen es opcional: el modo visual funciona aunque el navegador lo bloquee.
+      const app = $('#app');
+      const recordButton = $('#record-button');
+      function setRecording(force) {
+        const active = typeof force === 'boolean' ? force : !document.body.classList.contains('recording');
+        document.body.classList.toggle('recording', active);
+        recordButton.setAttribute('aria-pressed', String(active));
+        recordButton.textContent = active ? 'SALIR GRABACIÓN' : 'MODO GRABACIÓN';
+      }
+
+      async function enterFullscreen() {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          try { await document.documentElement.requestFullscreen(); } catch (_) { /* Gesto o política del navegador: se mantiene el modo visual. */ }
+        }
+      }
+
+      recordButton.addEventListener('click', () => {
+        const next = !document.body.classList.contains('recording');
+        setRecording(next);
+        if (next) enterFullscreen();
+      });
+
+      document.addEventListener('keydown', event => {
+        if (event.key.toLowerCase() === 'r') setRecording();
+        if (event.key.toLowerCase() === 'f') {
+          if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+          else enterFullscreen();
+        }
+      });
+
+      document.addEventListener('fullscreenchange', () => document.body.classList.toggle('fullscreen', Boolean(document.fullscreenElement)));
+
+      renderQueue();
+      renderSpark();
+      updateClock();
+      drawNetwork();
+      resizeParticles();
+      if (!reducedMotion) {
+        requestAnimationFrame(animatePackets);
+        requestAnimationFrame(animateParticles);
+      }
+
+      // AUTO DEMO permanece activo indefinidamente, con una cadencia legible en cámara.
+      window.setInterval(updateClock, 1000);
+      window.setInterval(updateTelemetry, reducedMotion ? 6000 : 1800);
+      window.setInterval(tickQueue, reducedMotion ? 7000 : 2200);
+      window.setInterval(() => addFeedEvent(), reducedMotion ? 8000 : 2400);
+      window.setInterval(pulseAgent, reducedMotion ? 7000 : 760);
+      window.setInterval(updateMatrix, reducedMotion ? 8000 : 1500);
+    })();
+  </script>
+</body>
+</html>
